@@ -196,13 +196,43 @@ func Test_getErrorFieldName(t *testing.T) {
 
 	sf1 := findStructField(v1, reflect.ValueOf(&s1.Field1))
 	assert.NotNil(t, sf1)
-	assert.Equal(t, "Field1", getErrorFieldName(sf1))
+	assert.Equal(t, "Field1", getErrorFieldName(sf1, ErrorTag))
 
 	jsonField := findStructField(v1, reflect.ValueOf(&s1.JSONField))
 	assert.NotNil(t, jsonField)
-	assert.Equal(t, "some_json_field", getErrorFieldName(jsonField))
+	assert.Equal(t, "some_json_field", getErrorFieldName(jsonField, ErrorTag))
 
 	jsonIgnoredField := findStructField(v1, reflect.ValueOf(&s1.JSONIgnoredField))
 	assert.NotNil(t, jsonIgnoredField)
-	assert.Equal(t, "JSONIgnoredField", getErrorFieldName(jsonIgnoredField))
+	assert.Equal(t, "JSONIgnoredField", getErrorFieldName(jsonIgnoredField, ErrorTag))
+}
+
+func TestValidateStructWithCustomErrorTag(t *testing.T) {
+	type Model1 struct {
+		Field1 string `custom:"field_1"`
+		Field2 int    `custom:"field_2"`
+	}
+
+	validStruct := Model1{
+		Field1: "value1",
+		Field2: 10,
+	}
+
+	err := ValidateStruct(&validStruct,
+		Field(&validStruct.Field1, Required).ErrorTag("custom"),
+		Field(&validStruct.Field2, Required).ErrorTag("custom"),
+	)
+	assert.NoError(t, err)
+
+	invalidStruct := Model1{
+		Field1: "",
+		Field2: 0,
+	}
+
+	err = ValidateStruct(&invalidStruct,
+		Field(&invalidStruct.Field1, Required).ErrorTag("custom"),
+		Field(&invalidStruct.Field2, Required).ErrorTag("custom"),
+	)
+	assert.Error(t, err)
+	assert.Equal(t, "field_1: cannot be blank; field_2: cannot be blank.", err.Error())
 }

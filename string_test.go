@@ -98,25 +98,26 @@ func TestGetErrorFieldName(t *testing.T) {
 	type A struct {
 		T0 string
 		T1 string `json:"t1"`
-		T2 string `json:"t2,omitempty"`
-		T3 string `json:",omitempty"`
-		T4 string `json:"t4,x1,omitempty"`
+		T2 string `query:"t2,omitempty"`
+		T3 string `param:",omitempty"`
+		T4 string `header:"t4,x1,omitempty"`
 	}
 	tests := []struct {
-		tag   string
-		field string
-		name  string
+		tagKey   string
+		tagValue string
+		field    string
+		name     string
 	}{
-		{"t1", "T0", "T0"},
-		{"t2", "T1", "t1"},
-		{"t3", "T2", "t2"},
-		{"t4", "T3", "T3"},
-		{"t5", "T4", "t4"},
+		{"", "t1", "T0", "T0"},
+		{"json", "t2", "T1", "t1"},
+		{"query", "t3", "T2", "t2"},
+		{"param", "t4", "T3", "T3"},
+		{"header", "t5", "T4", "t4"},
 	}
 	a := reflect.TypeOf(A{})
 	for _, test := range tests {
 		field, _ := a.FieldByName(test.field)
-		assert.Equal(t, test.name, getErrorFieldName(&field), test.tag)
+		assert.Equal(t, test.name, getErrorFieldName(&field, test.tagKey), test.tagValue)
 	}
 }
 

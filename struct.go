@@ -28,6 +28,7 @@ type (
 	FieldRules struct {
 		fieldPtr interface{}
 		rules    []Rule
+		errorTag string
 	}
 )
 
@@ -47,16 +48,16 @@ func (e ErrFieldNotFound) Error() string {
 // should be specified as a pointer to the field. A field can be associated with multiple rules.
 // For example,
 //
-//    value := struct {
-//        Name  string
-//        Value string
-//    }{"name", "demo"}
-//    err := validation.ValidateStruct(&value,
-//        validation.Field(&a.Name, validation.Required),
-//        validation.Field(&a.Value, validation.Required, validation.Length(5, 10)),
-//    )
-//    fmt.Println(err)
-//    // Value: the length must be between 5 and 10.
+//	value := struct {
+//	    Name  string
+//	    Value string
+//	}{"name", "demo"}
+//	err := validation.ValidateStruct(&value,
+//	    validation.Field(&a.Name, validation.Required),
+//	    validation.Field(&a.Value, validation.Required, validation.Length(5, 10)),
+//	)
+//	fmt.Println(err)
+//	// Value: the length must be between 5 and 10.
 //
 // An error will be returned if validation fails.
 func ValidateStruct(structPtr interface{}, fields ...*FieldRules) error {
@@ -109,7 +110,7 @@ func ValidateStructWithContext(ctx context.Context, structPtr interface{}, field
 					continue
 				}
 			}
-			errs[getErrorFieldName(ft)] = err
+			errs[getErrorFieldName(ft, fr.errorTag)] = err
 		}
 	}
 
@@ -125,7 +126,13 @@ func Field(fieldPtr interface{}, rules ...Rule) *FieldRules {
 	return &FieldRules{
 		fieldPtr: fieldPtr,
 		rules:    rules,
+		errorTag: ErrorTag,
 	}
+}
+
+func (fr *FieldRules) ErrorTag(name string) *FieldRules {
+	fr.errorTag = name
+	return fr
 }
 
 // findStructField looks for a field in the given struct.
@@ -159,8 +166,11 @@ func findStructField(structValue reflect.Value, fieldValue reflect.Value) *refle
 }
 
 // getErrorFieldName returns the name that should be used to represent the validation error of a struct field.
-func getErrorFieldName(f *reflect.StructField) string {
-	if tag := f.Tag.Get(ErrorTag); tag != "" && tag != "-" {
+func getErrorFieldName(f *reflect.StructField, tagKey string) string {
+	if tagKey == "" {
+		return f.Name
+	}
+	if tag := f.Tag.Get(tagKey); tag != "" && tag != "-" {
 		if cps := strings.SplitN(tag, ",", 2); cps[0] != "" {
 			return cps[0]
 		}
