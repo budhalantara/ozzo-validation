@@ -8,6 +8,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/shopspring/decimal"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -55,6 +56,13 @@ func TestMin(t *testing.T) {
 		{"t4.6", date20000601, true, 1, "cannot convert int to time.Time"},
 		{"t4.7", struct{}{}, false, 1, "type not supported: struct {}"},
 		{"t4.8", date0, false, date20000601, ""},
+		// decimal.Decimal cases
+		{"t5.1", decimal.NewFromInt(2), false, decimal.NewFromInt(2), ""},
+		{"t5.2", decimal.NewFromInt(2), false, decimal.NewFromInt(3), ""},
+		{"t5.3", decimal.NewFromInt(2), false, decimal.NewFromInt(1), "must be no less than 2"},
+		{"t5.4", decimal.NewFromInt(2), false, decimal.NewFromInt(0), ""},
+		{"t5.5", decimal.NewFromInt(2), true, decimal.NewFromInt(2), "must be greater than 2"},
+		{"t5.6", decimal.NewFromInt(2), false, "1", "cannot convert string to decimal.Decimal"},
 	}
 
 	for _, test := range tests {
@@ -117,6 +125,13 @@ func TestMax(t *testing.T) {
 		{"t4.4", date20000601, false, date0, ""},
 		{"t4.5", date20000601, true, date20000601, "must be less than 2000-06-01 00:00:00 +0000 UTC"},
 		{"t4.6", date20000601, true, 1, "cannot convert int to time.Time"},
+		// decimal.Decimal cases
+		{"t3.1", decimal.NewFromInt(2), false, decimal.NewFromInt(2), ""},
+		{"t3.2", decimal.NewFromInt(2), false, decimal.NewFromInt(1), ""},
+		{"t3.3", decimal.NewFromInt(2), false, decimal.NewFromInt(3), "must be no greater than 2"},
+		{"t3.4", decimal.NewFromInt(2), false, decimal.NewFromInt(0), ""},
+		{"t3.5", decimal.NewFromInt(2), true, decimal.NewFromInt(2), "must be less than 2"},
+		{"t3.6", decimal.NewFromInt(2), false, "1", "cannot convert string to decimal.Decimal"},
 	}
 
 	for _, test := range tests {

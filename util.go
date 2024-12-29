@@ -10,6 +10,8 @@ import (
 	"fmt"
 	"reflect"
 	"time"
+
+	"github.com/shopspring/decimal"
 )
 
 var (
@@ -117,9 +119,11 @@ func IsEmpty(value interface{}) bool {
 		}
 		return IsEmpty(v.Elem().Interface())
 	case reflect.Struct:
-		v, ok := value.(time.Time)
-		if ok && v.IsZero() {
-			return true
+		switch v := value.(type) {
+		case time.Time:
+			return v.IsZero()
+		case decimal.Decimal:
+			return v.IsZero()
 		}
 	}
 
@@ -145,6 +149,10 @@ func Indirect(value interface{}) (interface{}, bool) {
 	case reflect.Slice, reflect.Map, reflect.Func, reflect.Chan:
 		if rv.IsNil() {
 			return nil, true
+		}
+	case reflect.Struct:
+		if _, ok := value.(decimal.Decimal); ok {
+			return value, false
 		}
 	}
 

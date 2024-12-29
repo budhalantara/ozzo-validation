@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"reflect"
 	"time"
+
+	"github.com/shopspring/decimal"
 )
 
 var (
@@ -111,16 +113,27 @@ func (r ThresholdRule) Validate(value interface{}) error {
 		}
 
 	case reflect.Struct:
-		t, ok := r.threshold.(time.Time)
-		if !ok {
+		switch t := r.threshold.(type) {
+		case time.Time:
+			v, ok := value.(time.Time)
+			if !ok {
+				return fmt.Errorf("cannot convert %v to time.Time", reflect.TypeOf(value))
+			}
+			if v.IsZero() || r.compareTime(t, v) {
+				return nil
+			}
+
+		case decimal.Decimal:
+			v, ok := value.(decimal.Decimal)
+			if !ok {
+				return fmt.Errorf("cannot convert %v to decimal.Decimal", reflect.TypeOf(value))
+			}
+			if r.compareDecimal(t, v) {
+				return nil
+			}
+
+		default:
 			return fmt.Errorf("type not supported: %v", rv.Type())
-		}
-		v, ok := value.(time.Time)
-		if !ok {
-			return fmt.Errorf("cannot convert %v to time.Time", reflect.TypeOf(value))
-		}
-		if v.IsZero() || r.compareTime(t, v) {
-			return nil
 		}
 
 	default:
@@ -191,5 +204,18 @@ func (r ThresholdRule) compareTime(threshold, value time.Time) bool {
 		return value.Before(threshold)
 	default:
 		return value.Before(threshold) || value.Equal(threshold)
+	}
+}
+
+func (r ThresholdRule) compareDecimal(threshold, value decimal.Decimal) bool {
+	switch r.operator {
+	case greaterThan:
+		return value.GreaterThan(threshold)
+	case greaterEqualThan:
+		return value.GreaterThanOrEqual(threshold)
+	case lessThan:
+		return value.LessThan(threshold)
+	default:
+		return value.LessThanOrEqual(threshold)
 	}
 }
